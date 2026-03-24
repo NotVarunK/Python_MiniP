@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiniProject Hospital</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body { font-family: Arial, sans-serif; background: #f5f5f5; color: #222; }
+
+    /* NAV */
+    nav {
+      background: #0a6e6e; padding: 16px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    nav .logo { color: white; font-size: 1.4rem; font-weight: bold; }
+    nav ul { list-style: none; display: flex; gap: 28px; }
+    nav ul a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.95rem; }
+    nav ul a:hover { color: white; }
+
+    /* HERO */
+    .hero {
+      background: #064f4f; color: white;
+      padding: 80px 40px; text-align: center;
+    }
+    .hero h1 { font-size: 2.8rem; margin-bottom: 16px; }
+    .hero p  { font-size: 1.1rem; color: rgba(255,255,255,0.75); margin-bottom: 32px; }
+    .hero button {
+      background: #e8c87a; color: #1a1a1a;
+      border: none; padding: 14px 32px;
+      font-size: 1rem; font-weight: bold;
+      border-radius: 6px; cursor: pointer;
+    }
+    .hero button:hover { background: #d4b460; }
+
+    /* SERVICES */
+    .services { padding: 60px 40px; text-align: center; }
+    .services h2 { font-size: 1.8rem; margin-bottom: 40px; color: #0a6e6e; }
+    .services-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+      max-width: 900px; margin: 0 auto;
+    }
+    .card {
+      background: white; border-radius: 8px;
+      padding: 28px 20px; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .card .icon { font-size: 2rem; margin-bottom: 12px; }
+    .card h3 { font-size: 1rem; color: #0a6e6e; margin-bottom: 8px; }
+    .card p  { font-size: 0.88rem; color: #666; line-height: 1.6; }
+
+    /* DOCTORS */
+    .doctors { background: white; padding: 60px 40px; text-align: center; }
+    .doctors h2 { font-size: 1.8rem; margin-bottom: 40px; color: #0a6e6e; }
+    .doctors-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+      max-width: 900px; margin: 0 auto;
+    }
+    .doctor-card { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .doctor-card img { width: 100%; height: 180px; object-fit: cover; display: block; }
+    .doctor-card .info { padding: 14px; text-align: left; }
+    .doctor-card .spec { font-size: 0.72rem; color: #0a6e6e; text-transform: uppercase; font-weight: bold; }
+    .doctor-card .name { font-size: 0.95rem; font-weight: bold; margin: 4px 0; }
+    .doctor-card .avail { font-size: 0.78rem; color: #2d8a4e; }
+
+    /* CONTACT */
+    .contact { background: #0a6e6e; color: white; padding: 50px 40px; text-align: center; }
+    .contact h2 { font-size: 1.6rem; margin-bottom: 12px; }
+    .contact p  { color: rgba(255,255,255,0.8); margin-bottom: 6px; }
+
+    /* FOOTER */
+    footer { background: #1a1a1a; color: #888; text-align: center; padding: 20px; font-size: 0.85rem; }
+
+    /* CHAT WIDGET */
+    .chat-fab {
+      position: fixed; bottom: 28px; right: 28px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #0a6e6e; border: none; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(10,110,110,0.5);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chat-fab svg { width: 24px; height: 24px; fill: white; }
+    .chat-pulse {
+      position: absolute; top: 2px; right: 2px;
+      width: 12px; height: 12px; background: #e8c87a;
+      border-radius: 50%; border: 2px solid white;
+    }
+
+    .chat-window {
+      position: fixed; bottom: 96px; right: 28px;
+      width: 340px; background: white; border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      display: none; flex-direction: column;
+      overflow: hidden;
+    }
+    .chat-window.open { display: flex; }
+
+    .chat-head {
+      background: #0a6e6e; padding: 16px;
+      display: flex; align-items: center; gap: 12px; color: white;
+    }
+    .chat-head .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+    .chat-head .bot-name   { font-weight: bold; font-size: 0.95rem; }
+    .chat-head .bot-status { font-size: 0.75rem; opacity: 0.8; }
+
+    .chat-body {
+      height: 300px; padding: 16px;
+      overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+    }
+    .msg {
+      max-width: 85%; padding: 10px 13px;
+      border-radius: 12px; font-size: 0.85rem; line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .msg.bot  { background: #f0f7f7; color: #222; align-self: flex-start; border-bottom-left-radius: 3px; }
+    .msg.user { background: #0a6e6e; color: white; align-self: flex-end; border-bottom-right-radius: 3px; }
+
+    .chat-foot {
+      padding: 12px; border-top: 1px solid #e2e8f0;
+      display: flex; gap: 8px;
+    }
+    .chat-foot input {
+      flex: 1; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 9px 12px; font-size: 0.85rem; outline: none;
+    }
+    .chat-foot input:focus { border-color: #0a6e6e; }
+    .chat-foot button {
+      width: 38px; height: 38px; background: #0a6e6e;
+      border: none; border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chat-foot button svg { width: 16px; height: 16px; fill: white; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">🏥 MiniProject Hospital</div>
+  <ul>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#doctors">Doctors</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Your Health, Our Priority</h1>
+  <p>Comprehensive healthcare services available 24/7. Book an appointment with our chatbot.</p>
+  <button onclick="openChat()">Chat with MediBot</button>
+</div>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <h2>Our Services</h2>
+  <div class="services-grid">
+    <div class="card"><div class="icon">🫀</div><h3>Cardiology</h3><p>Heart health diagnostics and cardiovascular care.</p></div>
+    <div class="card"><div class="icon">🦴</div><h3>Orthopaedics</h3><p>Bone, joint, and muscle treatment.</p></div>
+    <div class="card"><div class="icon">🧠</div><h3>Neurology</h3><p>Brain and nerve disorder management.</p></div>
+    <div class="card"><div class="icon">👶</div><h3>Paediatrics</h3><p>Dedicated healthcare for children.</p></div>
+    <div class="card"><div class="icon">🔬</div><h3>Pathology & Labs</h3><p>Same-day diagnostic lab reports.</p></div>
+    <div class="card"><div class="icon">💉</div><h3>Vaccination</h3><p>Flu, Typhoid, Hepatitis and more.</p></div>
+  </div>
+</section>
+
+<!-- DOCTORS -->
+<section class="doctors" id="doctors">
+  <h2>Our Doctors</h2>
+  <div class="doctors-grid">
+    <div class="doctor-card">
+      <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&q=80" alt="Dr. Varun Kolambekar" />
+      <div class="info">
+        <div class="spec">Cardiology</div>
+        <div class="name">Dr. Varun Kolambekar</div>
+        <div class="avail">● Mon, Wed, Fri</div>
+      </div>
+    </div>
+    <div class="doctor-card">
+      <img src="https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&q=80" alt="Dr. Priya Sharma" />
+      <div class="info">
+        <div class="spec">Gynaecology</div>
+        <div class="name">Dr. Priya Sharma</div>
+        <div class="avail">● Mon, Wed, Sat</div>
+      </div>
+    </div>
+    <div class="doctor-card">
+      <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&q=80" alt="Dr. Harsh Agrawal" />
+      <div class="info">
+        <div class="spec">Neurology</div>
+        <div class="name">Dr. Harsh Agrawal</div>
+        <div class="avail">● Mon, Thu, Sat</div>
+      </div>
+    </div>
+    <div class="doctor-card">
+      <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&q=80" alt="Dr. Arnav Kshirsagar" />
+      <div class="info">
+        <div class="spec">Orthopaedics</div>
+        <div class="name">Dr. Arnav Kshirsagar</div>
+        <div class="avail">● Tue, Wed, Fri</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<div class="contact" id="contact">
+  <h2>Get in Touch</h2>
+  <p>📞 +91 20 1234 5678</p>
+  <p>📍 123 Healthcare Road, Pune, MH</p>
+  <p>🕐 OPD: Mon–Sat, 8 AM – 8 PM &nbsp;|&nbsp; Emergency: 24/7</p>
+</div>
+
+<!-- FOOTER -->
+<footer>© 2025 MiniProject Hospital. All rights reserved.</footer>
+
+<!-- CHAT WIDGET -->
+<div class="chat-window" id="chatWindow">
+  <div class="chat-head">
+    <div class="avatar">🤖</div>
+    <div>
+      <div class="bot-name">MediBot</div>
+      <div class="bot-status">● Online</div>
+    </div>
+  </div>
+  <div class="chat-body" id="chatBody">
+    <div class="msg bot">Hi! I am MediBot. I can help you with appointments, doctors, vaccines, health tips, and more. How can I help?</div>
+  </div>
+  <div class="chat-foot">
+    <input type="text" id="chatInput" placeholder="Type a message..." />
+    <button onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<button class="chat-fab" onclick="toggleChat()">
+  <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+  <span class="chat-pulse"></span>
+</button>
+
+<script>
+  const SESSION_ID = 'session_' + Math.random().toString(36).substr(2, 9);
+  let chatOpen = false;
+
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chatWindow').classList.toggle('open', chatOpen);
+  }
+
+  function openChat() {
+    chatOpen = true;
+    document.getElementById('chatWindow').classList.add('open');
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const body  = document.getElementById('chatBody');
+    const text  = input.value.trim();
+    if (!text) return;
+
+    // show user message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'msg user';
+    userMsg.textContent = text;
+    body.appendChild(userMsg);
+    input.value = '';
+    body.scrollTop = body.scrollHeight;
+
+    // typing indicator
+    const typing = document.createElement('div');
+    typing.className = 'msg bot';
+    typing.id = 'typing';
+    typing.textContent = '...';
+    body.appendChild(typing);
+    body.scrollTop = body.scrollHeight;
+
+    try {
+      const res  = await fetch('http://localhost:5000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, session: SESSION_ID })
+      });
+      const data = await res.json();
+      document.getElementById('typing').remove();
+
+      const botMsg = document.createElement('div');
+      botMsg.className = 'msg bot';
+      botMsg.textContent = data.reply;
+      body.appendChild(botMsg);
+    } catch (e) {
+      document.getElementById('typing').remove();
+      const err = document.createElement('div');
+      err.className = 'msg bot';
+      err.textContent = 'Cannot connect to server. Make sure server.py is running.';
+      body.appendChild(err);
+    }
+
+    body.scrollTop = body.scrollHeight;
+  }
+
+  document.getElementById('chatInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMessage();
+  });
+</script>
+
+</body>
+</html>
