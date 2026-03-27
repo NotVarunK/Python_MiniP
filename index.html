@@ -282,7 +282,7 @@
     body.scrollTop = body.scrollHeight;
 
     try {
-     const res = await fetch(window.location.origin + '/chat', {
+     const res = await fetch('https://python-minip.onrender.com/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, session: SESSION_ID })
