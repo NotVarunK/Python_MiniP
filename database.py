@@ -1,7 +1,7 @@
 import mysql.connector
 
 DB_CONFIG = {
-    "host":     "mysql://root:dOUejIuaMGNpPtecvWJauGyGTDvyvTYX@metro.proxy.rlwy.net:11107/railway",
+    "host":     "metro.proxy.rlwy.net",
     "user":     "root",
     "password": "dOUejIuaMGNpPtecvWJauGyGTDvyvTYX",   # change this to your MySQL password
     "database": "railway"
