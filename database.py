@@ -1,10 +1,10 @@
 import mysql.connector
 
 DB_CONFIG = {
-    "host":     "localhost",
+    "host":     "railway",
     "user":     "root",
-    "password": "qwerty",   # change this to your MySQL password
-    "database": "medibot"
+    "password": "dOUejIuaMGNpPtecvWJauGyGTDvyvTYX",   # change this to your MySQL password
+    "database": "railway"
 }
 
 def get_conn():
