@@ -1,28 +1,9 @@
 doctors = {
-    "cardiology":   [("Dr. Varun Kolambekar", "Mon, Wed, Fri"), ("Dr. Arnav Kshirsagar", "Tue, Thu")],
-    "neurology":    [("Dr. Harsh Agrawal", "Mon, Thu, Sat")],
-    "orthopaedics": [("Dr. Avanish Parkhi", "Tue, Wed, Fri")],
-    "gynaecology":  [("Dr. Kanika Jha ", "Mon, Wed, Sat")],
-    "paediatrics":  [("Dr. Shreedhar Salunkhe", "Mon to Sat")],
-    "dermatology":  [("Dr. Srushti Chougule", "Tue, Fri")],
-    "general":      [("Dr. Shraddha Kapoor", "Mon to Sat"), ("Dr. Ranveer Singh", "Mon to Sat")],
+    "cardiology": [{"name": "Dr. Varun Kolambekar", "days": ["Monday", "Wednesday", "Friday"]}],
+    "general":    [{"name": "Dr. Shraddha Kapoor",  "days": ["Monday", "Tuesday", "Wednesday"]}],
 }
 
-# Each doctor's available days as a list (for booking flow)
-doctor_days = {
-    "Dr. Varun Kolambekar": ["Monday", "Wednesday", "Friday"],
-    "Dr. Arnav Kshirsagar":       ["Tuesday", "Thursday"],
-    "Dr. Harsh Agrawal":    ["Monday", "Thursday", "Saturday"],
-    "Dr. Avanish Parkhi": ["Tuesday", "Wednesday", "Friday"],
-    "Dr. Kanika Jha":     ["Monday", "Wednesday", "Saturday"],
-    "Dr. Shreedhar Salunkhe":      ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    "Dr. Srushti Chougule": ["Tuesday", "Friday"],
-    "Dr. Shraddha Kapoor":  ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    "Dr. Ranveer Singh":     ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-}
-
-time_slots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-              "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"]
+time_slots = ["Morning (9 AM)", "Noon (12 PM)", "Evening (5 PM)"]
 
 faqs = {
     "visiting hours": "Visiting hours are 9 AM - 12 PM and 4 PM - 7 PM daily.",
@@ -59,24 +40,28 @@ booking_state = {}
 def reset_booking(session):
     booking_state[session] = {"step": None, "dept": None, "doctor": None, "day": None}
 
-def pick_from_list(msg, items):
+def pick_index(msg, items):
+    # items is a list of strings or dicts
     if msg.strip().isdigit():
         idx = int(msg.strip()) - 1
         if 0 <= idx < len(items):
             return items[idx]
     else:
         for item in items:
-            label = item[0] if isinstance(item, tuple) else item
+            label = item["name"] if isinstance(item, dict) else item
             if label.lower() in msg or msg in label.lower():
                 return item
     return None
+
+# ── BOOKING FLOW ───────────────────────────
 
 def handle_booking(msg, session):
     if session not in booking_state:
         reset_booking(session)
     state = booking_state[session]
-    step = state["step"]
+    step  = state["step"]
 
+    # STEP 1 - show departments
     if step is None:
         state["step"] = "choose_dept"
         dept_list = "\n".join(f"  {i+1}. {d.capitalize()}" for i, d in enumerate(doctors.keys()))
@@ -85,50 +70,62 @@ def handle_booking(msg, session):
     # STEP 2 - pick department
     if step == "choose_dept":
         dept_keys = list(doctors.keys())
-        chosen = pick_from_list(msg, dept_keys)
+        chosen = pick_index(msg, dept_keys)
         if not chosen:
             return "Please type a specialization name or number from the list."
         state["dept"] = chosen
         state["step"] = "choose_doctor"
-        doc_list = "\n".join(f"  {i+1}. {d[0]} ({d[1]})" for i, d in enumerate(doctors[chosen]))
+        doc_list = "\n".join(f"  {i+1}. {d['name']} ({', '.join(d['days'])})" for i, d in enumerate(doctors[chosen]))
         return "Doctors in " + chosen.capitalize() + ":\n" + doc_list + "\n\nType the doctor's name or number."
 
+    # STEP 3 - pick doctor
     if step == "choose_doctor":
-        dept = state["dept"]
-        doc_tuples = doctors[dept]
-        doc_names = [d[0] for d in doc_tuples]
-        chosen = pick_from_list(msg, doc_names)
+        dept     = state["dept"]
+        doc_list = doctors[dept]
+        chosen   = pick_index(msg, doc_list)   # returns a dict
         if not chosen:
             return "Please type the doctor's name or number from the list."
-        state["doctor"] = chosen
-        state["step"] = "choose_day"
-        days = doctor_days[chosen]
+        state["doctor"] = chosen["name"]
+        state["step"]   = "choose_day"
+        days     = chosen["days"]
         day_list = "\n".join(f"  {i+1}. {d}" for i, d in enumerate(days))
-        return chosen + " is available on:\n" + day_list + "\n\nWhich day works for you?"
+        return chosen["name"] + " is available on:\n" + day_list + "\n\nWhich day works for you?"
 
     # STEP 4 - pick day
     if step == "choose_day":
-        days = doctor_days[state["doctor"]]
-        chosen = pick_from_list(msg, days)
+        dept     = state["dept"]
+        doc_name = state["doctor"]
+        doc      = next(d for d in doctors[dept] if d["name"] == doc_name)
+        days     = doc["days"]
+        chosen   = pick_index(msg, days)
         if not chosen:
             return "Please choose a valid day from the list above."
-        state["day"] = chosen
+        state["day"]  = chosen
         state["step"] = "choose_slot"
         slot_list = "\n".join(f"  {i+1}. {s}" for i, s in enumerate(time_slots))
         return "Available slots on " + chosen + ":\n" + slot_list + "\n\nWhich time do you prefer?"
 
+    # STEP 5 - pick slot and confirm
     if step == "choose_slot":
-        chosen = pick_from_list(msg, time_slots)
+        chosen = pick_index(msg, time_slots)
         if not chosen:
             return "Please choose a valid time slot from the list above."
-        doc  = state["doctor"]
+        doc = state["doctor"]
         dept = state["dept"].capitalize()
-        day  = state["day"]
+        day = state["day"]
+
+        from database import is_slot_taken, save_appointment
+        if is_slot_taken(doc, day, chosen):
+            slot_list = "\n".join(f"  {i + 1}. {s}" for i, s in enumerate(time_slots))
+            return ("Sorry, " + chosen + " with " + doc + " on " + day + " is already booked.\n\n"
+                    "Please choose another slot:\n" + slot_list)
+
+        save_appointment(doc, dept, day, chosen)
         reset_booking(session)
         return ("Appointment Confirmed!\n\n"
                 "  Department : " + dept + "\n"
-                "  Doctor     : " + doc  + "\n"
-                "  Day        : " + day  + "\n"
+                "  Doctor     : " + doc + "\n"
+                "  Day        : " + day + "\n"
                 "  Time       : " + chosen + "\n\n"
                 "Please arrive 10 minutes early with a valid ID.\n"
                 "For changes, call +91 20 1234 5678.")
@@ -142,9 +139,11 @@ def handle_booking(msg, session):
 def get_response(user_message, session="default"):
     msg = user_message.lower().strip()
 
+    # keep user in booking flow if active
     if booking_state.get(session, {}).get("step") is not None:
         return handle_booking(msg, session)
 
+    # GREETING
     if any(w in msg for w in ["hi", "hello", "hey", "good morning", "good evening"]):
         return ("Hello! Welcome to MiniProject Hospital. I am MediBot.\n\n"
                 "I can help you with:\n"
@@ -159,68 +158,75 @@ def get_response(user_message, session="default"):
         return handle_booking(msg, session)
 
     # DOCTOR SEARCH
-    if any(w in msg for w in ["doctor", "specialist", "find", "heart", "bone", "child",
-                               "skin", "cardio", "neuro", "ortho", "gynae", "paediat", "dermat", "general"]):
-        if any(w in msg for w in ["heart", "cardio"]):        key = "cardiology"
-        elif any(w in msg for w in ["neuro", "brain"]):       key = "neurology"
-        elif any(w in msg for w in ["bone", "ortho", "joint"]): key = "orthopaedics"
-        elif any(w in msg for w in ["gynae", "women", "pregnancy"]): key = "gynaecology"
-        elif any(w in msg for w in ["child", "baby", "paediat"]): key = "paediatrics"
-        elif any(w in msg for w in ["skin", "dermat", "acne"]): key = "dermatology"
-        elif any(w in msg for w in ["general", "fever", "cold"]): key = "general"
+    if any(w in msg for w in ["doctor", "specialist", "find", "cardio", "general"]):
+        if any(w in msg for w in ["heart", "cardio"]):
+            key = "cardiology"
+        elif any(w in msg for w in ["general", "fever", "cold"]):
+            key = "general"
         else:
             return "We have: " + ", ".join(d.capitalize() for d in doctors.keys()) + "\nWhich department?"
         result = key.capitalize() + " Doctors:\n"
-        for name, days in doctors[key]:
-            result += "  - " + name + " (" + days + ")\n"
+        for d in doctors[key]:
+            result += "  - " + d["name"] + " (" + ", ".join(d["days"]) + ")\n"
         return result + "\nType 'book appointment' to schedule."
 
+    # HEALTH TIPS
     if any(w in msg for w in ["tip", "advice", "healthy", "wellness"]):
         tip = health_tips[tip_index[0] % len(health_tips)]
         tip_index[0] += 1
         return "Health Tip: " + tip
 
+    # VACCINES
     if any(w in msg for w in ["vaccine", "vaccination", "flu", "hepatitis", "typhoid", "tetanus"]):
         for vac, info in vaccines.items():
             if vac in msg:
                 return vac.capitalize() + " Vaccine: " + info + "\n\nVaccination Centre - 1st floor."
         return "We provide: " + ", ".join(v.capitalize() for v in vaccines.keys()) + "\nAsk about any specific one!"
 
+    # INSURANCE
     if any(w in msg for w in ["insurance", "cashless", "claim"]):
         return faqs["insurance"]
 
+    # BILLING
     if any(w in msg for w in ["bill", "payment", "pay", "fees", "cost"]):
         return faqs["billing"]
 
+    # CANCELLATION
     if any(w in msg for w in ["cancel", "reschedule"]):
         return faqs["cancellation"]
 
+    # LAB
     if any(w in msg for w in ["lab", "test", "report", "blood", "urine"]):
         return faqs["lab reports"] + "\nLab open Mon-Sat, 7 AM - 6 PM."
 
+    # TIMING
     if any(w in msg for w in ["timing", "hours", "open", "opd"]):
         return faqs["timing"]
 
+    # VISITING
     if "visiting" in msg:
         return faqs["visiting hours"]
 
+    # EMERGENCY
     if any(w in msg for w in ["emergency", "ambulance", "urgent"]):
         return "Call 108 immediately!\nHospital ambulance: +91 20 1234 5678\nEmergency open 24/7."
 
+    # GOODBYE
     if any(w in msg for w in ["bye", "thanks", "thank you", "done"]):
         return "Thank you! Stay healthy. Take care!"
 
+    # FALLBACK
     return ("I did not understand that.\n"
             "I can help with: appointments, doctors, vaccines, health tips, billing, insurance, lab reports.")
 
 
-# ── TERMINAL TEST ──────────────────────────
-if __name__ == "__main__":
-    print("MediBot running. Type 'bye' to exit.\n")
-    while True:
-        user_input = input("You: ")
-        if not user_input.strip():
-            continue
-        print("MediBot: " + get_response(user_input) + "\n")
-        if "bye" in user_input.lower():
-            break
+# # ── TERMINAL TEST ──────────────────────────
+# if __name__ == "__main__":
+#     print("MediBot running. Type 'bye' to exit.\n")
+#     while True:
+#         user_input = input("You: ")
+#         if not user_input.strip():
+#             continue
+#         print("MediBot: " + get_response(user_input) + "\n")
+#         if "bye" in user_input.lower():
+#             break
