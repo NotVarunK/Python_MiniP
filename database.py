@@ -1,3 +1,16 @@
+import mysql.connector
+
+DB_CONFIG = {
+    "host":     "metro.proxy.rlwy.net",
+    "user":     "root",
+    "password": "dOUejIuaMGNpPtecvWJauGyGTDvyvTYX",
+    "database": "railway",
+    "port":      11107
+}
+
+def get_conn():
+    return mysql.connector.connect(**DB_CONFIG)
+
 def is_slot_taken(doctor, day, slot):
     try:
         conn   = get_conn()
@@ -10,7 +23,7 @@ def is_slot_taken(doctor, day, slot):
         conn.close()
         return result is not None
     except:
-        return False   
+        return False
 
 def save_appointment(doctor, department, day, slot):
     try:
@@ -23,4 +36,4 @@ def save_appointment(doctor, department, day, slot):
         conn.commit()
         conn.close()
     except:
-        pass   
+        pass
