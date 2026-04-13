@@ -41,7 +41,6 @@ def reset_booking(session):
     booking_state[session] = {"step": None, "dept": None, "doctor": None, "day": None}
 
 def pick_index(msg, items):
-    # items is a list of strings or dicts
     if msg.strip().isdigit():
         idx = int(msg.strip()) - 1
         if 0 <= idx < len(items):
@@ -61,13 +60,11 @@ def handle_booking(msg, session):
     state = booking_state[session]
     step  = state["step"]
 
-    # STEP 1 - show departments
     if step is None:
         state["step"] = "choose_dept"
         dept_list = "\n".join(f"  {i+1}. {d.capitalize()}" for i, d in enumerate(doctors.keys()))
         return "Let us book your appointment.\n\nChoose a specialization:\n" + dept_list + "\n\nType the name or number."
 
-    # STEP 2 - pick department
     if step == "choose_dept":
         dept_keys = list(doctors.keys())
         chosen = pick_index(msg, dept_keys)
@@ -78,11 +75,10 @@ def handle_booking(msg, session):
         doc_list = "\n".join(f"  {i+1}. {d['name']} ({', '.join(d['days'])})" for i, d in enumerate(doctors[chosen]))
         return "Doctors in " + chosen.capitalize() + ":\n" + doc_list + "\n\nType the doctor's name or number."
 
-    # STEP 3 - pick doctor
     if step == "choose_doctor":
         dept     = state["dept"]
         doc_list = doctors[dept]
-        chosen   = pick_index(msg, doc_list)   # returns a dict
+        chosen   = pick_index(msg, doc_list)  
         if not chosen:
             return "Please type the doctor's name or number from the list."
         state["doctor"] = chosen["name"]
@@ -91,7 +87,6 @@ def handle_booking(msg, session):
         day_list = "\n".join(f"  {i+1}. {d}" for i, d in enumerate(days))
         return chosen["name"] + " is available on:\n" + day_list + "\n\nWhich day works for you?"
 
-    # STEP 4 - pick day
     if step == "choose_day":
         dept     = state["dept"]
         doc_name = state["doctor"]
@@ -104,8 +99,7 @@ def handle_booking(msg, session):
         state["step"] = "choose_slot"
         slot_list = "\n".join(f"  {i+1}. {s}" for i, s in enumerate(time_slots))
         return "Available slots on " + chosen + ":\n" + slot_list + "\n\nWhich time do you prefer?"
-
-    # STEP 5 - pick slot and confirm
+        
     if step == "choose_slot":
         chosen = pick_index(msg, time_slots)
         if not chosen:
@@ -134,16 +128,12 @@ def handle_booking(msg, session):
     return "Something went wrong. Type 'book appointment' to start again."
 
 
-# ── MAIN RESPONSE FUNCTION ─────────────────
-
 def get_response(user_message, session="default"):
     msg = user_message.lower().strip()
 
-    # keep user in booking flow if active
     if booking_state.get(session, {}).get("step") is not None:
         return handle_booking(msg, session)
 
-    # GREETING
     if any(w in msg for w in ["hi", "hello", "hey", "good morning", "good evening"]):
         return ("Hello! Welcome to MiniProject Hospital. I am MediBot.\n\n"
                 "I can help you with:\n"
@@ -152,8 +142,6 @@ def get_response(user_message, session="default"):
                 "- Health tips\n"
                 "- Vaccines\n"
                 "- Billing, insurance, lab reports")
-
-    # APPOINTMENT
     if any(w in msg for w in ["appointment", "book", "schedule", "consult"]):
         return handle_booking(msg, session)
 
